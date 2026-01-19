@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>اختبار الأصدقاء</title>
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  direction: rtl;
+  background:#f4f4f4;
+  padding:20px;
+}
+.hidden{display:none}
+.container{
+  background:#fff;
+  padding:20px;
+  border-radius:10px;
+  max-width:600px;
+  margin:auto;
+}
+button{
+  padding:10px 20px;
+  font-size:16px;
+  margin-top:10px;
+  cursor:pointer;
+}
+.question{
+  margin-top:20px;
+}
+#timer{
+  font-size:18px;
+  font-weight:bold;
+  color:red;
+  margin-bottom:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- صفحة الاسم -->
+<div id="pageName">
+  <h2>أدخل اسمك</h2>
+  <input type="text" id="username" placeholder="اسمك" style="width:100%;padding:10px">
+  <button onclick="goConfirm()">متابعة</button>
+</div>
+
+<!-- صفحة التأكيد -->
+<div id="pageConfirm" class="hidden">
+  <h2>هل تريد بدء الاختبار؟</h2>
+  <p>⏱️ زمن الاختبار الكلي: <b>20 دقيقة</b></p>
+  <p>⏳ زمن كل سؤال: <b>15 ثانية</b></p>
+  <p>❌ لا يمكن إعادة الاختبار</p>
+  <button onclick="startQuiz()">ابدأ الاختبار</button>
+</div>
+
+<!-- صفحة الاختبار -->
+<div id="pageQuiz" class="hidden">
+  <div id="timer">20:00</div>
+  <div id="quiz"></div>
+  <button id="submitBtn" class="hidden" onclick="finishQuiz()">إرسال النتيجة</button>
+</div>
+
+<!-- صفحة النتيجة -->
+<div id="pageResult" class="hidden">
+  <h2>انتهى الاختبار</h2>
+  <p id="resultText"></p>
+</div>
+
+</div>
+
+<script>
+let username="";
+let current=0;
+let score=0;
+let totalTime=1200; // 20 دقيقة
+let questionTime=15;
+let totalTimer, questionTimer;
+
+const questions=[
+ {q:"ما هو اكثر البحار دفئاً؟",o:["البحر الأحمر","البحر المتوسط","البحر الكاريبي"],a:0},
+ {q:"ما هو عدد عظام الجمجمة؟",o:["22","20","18"],a:0},
+ {q:"كم عدد عيون النحلة؟",o:["6","5","8"],a:1},
+ {q:"ما هي أصغر دولة في العالم؟",o:["البحرين","سان مارتن","الفاتيكان"],a:2},
+ {q:"ما هو اسم بيت الدجاج؟",o:["قن","الخربوشة","الحدج"],a:0},
+ {q:"ماهو مقياس سرعة السفن؟",o:["الميل البحري","العقدة","كم/س"],a:1},
+ {q:"الشاعر الذي عاصر الجاهلية والإسلام؟",o:["الجهبذ","المخضرم","المتدشق"],a:1},
+ {q:"الحيوان الذي يصاب بالحصبة كالإنسان؟",o:["الدجاج","القرد","الغوريلا"],a:1},
+ {q:"متى حولت القبلة إلى الكعبة؟",o:["السنة الثانية","الأولى","الثالثة"],a:0},
+ {q:"السورة التي ذكرت فيها البسملة مرتين؟",o:["التوبة","الرحمن","النمل"],a:2},
+ {q:"أضعف حواس الطيور؟",o:["الإبصار","الشم","السمع"],a:1},
+ {q:"شيء في السماء وإذا أضفنا حرفًا أصبح في Hay Day؟",o:["السفينة","النجم","النهر"],a:1},
+ {q:"أكبر البحيرات النهرية؟",o:["قزوين","فيكتوريا","سوبيريور"],a:1},
+ {q:"مدينة التلال السبعة؟",o:["مدريد","روما","دمشق"],a:1},
+ {q:"كم مرة حج النبي ﷺ؟",o:["9","2","1"],a:2}
+];
+
+function goConfirm(){
+ username=document.getElementById("username").value.trim();
+ if(!username){alert("اكتب اسمك");return;}
+ if(localStorage.getItem("quiz_done")){
+   alert("لقد شاركت مسبقًا");
+   return;
+ }
+ document.getElementById("pageName").classList.add("hidden");
+ document.getElementById("pageConfirm").classList.remove("hidden");
+}
+
+function startQuiz(){
+ document.getElementById("pageConfirm").classList.add("hidden");
+ document.getElementById("pageQuiz").classList.remove("hidden");
+ showQuestion();
+ startTotalTimer();
+}
+
+function showQuestion(){
+ if(current>=questions.length){
+   document.getElementById("submitBtn").classList.remove("hidden");
+   return;
+ }
+ let q=questions[current];
+ let html=`<div class="question"><h3>${current+1}. ${q.q}</h3>`;
+ q.o.forEach((op,i)=>{
+   html+=`<label><input type="radio" name="opt" value="${i}"> ${op}</label><br>`;
+ });
+ html+="</div>";
+ document.getElementById("quiz").innerHTML=html;
+
+ let t=questionTime;
+ questionTimer=setInterval(()=>{
+   t--;
+   if(t<=0){nextQuestion();}
+ },1000);
+}
+
+function nextQuestion(){
+ clearInterval(questionTimer);
+ let sel=document.querySelector("input[name=opt]:checked");
+ if(sel && Number(sel.value)===questions[current].a) score++;
+ current++;
+ showQuestion();
+}
+
+function startTotalTimer(){
+ totalTimer=setInterval(()=>{
+   totalTime--;
+   let m=Math.floor(totalTime/60);
+   let s=totalTime%60;
+   document.getElementById("timer").innerText=
+     `${m}:${s<10?"0"+s:s}`;
+   if(totalTime<=0){
+     clearInterval(totalTimer);
+     clearInterval(questionTimer);
+     document.getElementById("submitBtn").classList.remove("hidden");
+   }
+ },1000);
+}
+
+function finishQuiz(){
+ localStorage.setItem("quiz_done","1");
+ document.getElementById("pageQuiz").classList.add("hidden");
+ document.getElementById("pageResult").classList.remove("hidden");
+ document.getElementById("resultText").innerText=
+   `${username} نتيجتك ${score} من ${questions.length}`;
+}
+</script>
+
+</body>
+  </html>
