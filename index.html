@@ -3,113 +3,248 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>اختبار الأصدقاء</title>
+<title>الاختبار النهائي</title>
 
 <style>
 body{
-  font-family: Arial, sans-serif;
+  font-family: Tahoma, Arial;
   direction: rtl;
-  background:#f4f4f4;
-  padding:20px;
+  background: linear-gradient(135deg,#f6f8fb,#e9eef5);
+  margin:0;
 }
-.hidden{display:none}
 .container{
   background:#fff;
-  padding:20px;
-  border-radius:10px;
-  max-width:600px;
-  margin:auto;
+  max-width:800px;
+  margin:20px auto;
+  padding:25px;
+  border-radius:20px;
+  box-shadow:0 15px 35px rgba(0,0,0,0.15);
+}
+.hidden{display:none}
+input{
+  width:100%;
+  padding:12px;
+  margin:6px 0;
+  font-size:16px;
 }
 button{
-  padding:10px 20px;
+  background:linear-gradient(135deg,#f5b041,#f39c12);
+  color:#fff;
+  border:none;
+  padding:12px 25px;
   font-size:16px;
-  margin-top:10px;
+  border-radius:8px;
   cursor:pointer;
 }
-.question{
-  margin-top:20px;
-}
-#timer{
+button:hover{opacity:.9}
+
+#totalTimer{
   font-size:18px;
   font-weight:bold;
-  color:red;
-  margin-bottom:10px;
+  color:#c0392b;
 }
+#questionTimer{
+  font-size:46px;
+  font-weight:bold;
+  text-align:center;
+  color:#27ae60;
+  margin:15px 0;
+}
+.option{margin:8px 0}
+#nextBtn{background:#27ae60;margin-top:10px}
+
+.quiz-image{
+  display:flex;
+  justify-content:center;
+  margin:30px 0;
+}
+.quiz-image img{
+  max-width:90%;
+  border-radius:18px;
+  box-shadow:0 8px 20px rgba(0,0,0,.2);
+  opacity:0;
+  transform:scale(.9);
+  animation:imageIntro 1.2s ease-out forwards;
+}
+@keyframes imageIntro{to{opacity:1;transform:scale(1)}}
+
+table{width:100%;border-collapse:collapse;margin-top:15px}
+th,td{border:1px solid #ccc;padding:10px;text-align:center}
+th{background:#eee}
+
+.gold-cup{
+  display:inline-block;
+  font-size:24px;
+  animation:cupBounce 1.5s infinite;
+}
+@keyframes cupBounce{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-6px)}
+}
+.gold-cup::after{content:"✨";margin-right:4px}
 </style>
 </head>
 
 <body>
-
 <div class="container">
 
-<!-- صفحة الاسم -->
+<!-- صفحة الدخول -->
 <div id="pageName">
-  <h2>أدخل اسمك</h2>
-  <input type="text" id="username" placeholder="اسمك" style="width:100%;padding:10px">
-  <button onclick="goConfirm()">متابعة</button>
+<h2>📝 تسجيل الدخول</h2>
+<input id="username" placeholder="الاسم">
+<input id="password" type="password" placeholder="كلمة السر">
+<button onclick="goConfirm()">دخول</button>
+
+<hr>
+<h3>📊 جدول النتائج</h3>
+<table id="leaderboard">
+<tr><th>الترتيب</th><th>الاسم</th><th>الدرجة</th></tr>
+</table>
 </div>
 
-<!-- صفحة التأكيد -->
+<!-- التأكيد -->
 <div id="pageConfirm" class="hidden">
-  <h2>هل تريد بدء الاختبار؟</h2>
-  <p>⏱️ زمن الاختبار الكلي: <b>20 دقيقة</b></p>
-  <p>⏳ زمن كل سؤال: <b>15 ثانية</b></p>
-  <p>❌ لا يمكن إعادة الاختبار</p>
-  <button onclick="startQuiz()">ابدأ الاختبار</button>
+<h2>⚠️ تنبيه</h2>
+<ul>
+<li>⏱️ 20 دقيقة</li>
+<li>⏳ 15 ثانية لكل سؤال</li>
+<li>❌ محاولة واحدة</li>
+</ul>
+<button onclick="startQuiz()">ابدأ الاختبار</button>
 </div>
 
-<!-- صفحة الاختبار -->
+<!-- الاختبار -->
 <div id="pageQuiz" class="hidden">
-  <div id="timer">20:00</div>
-  <div id="quiz"></div>
-  <button id="submitBtn" class="hidden" onclick="finishQuiz()">إرسال النتيجة</button>
+<div style="display:flex;justify-content:space-between">
+<div id="totalTimer">⏱️ 20:00</div>
 </div>
 
-<!-- صفحة النتيجة -->
+<div id="questionTimer">15</div>
+<div id="quiz"></div>
+<button id="nextBtn" class="hidden" onclick="nextQuestion()">➡️ السؤال التالي</button>
+
+<div class="quiz-image">
+<img src="bg.jpg">
+</div>
+
+<button id="submitBtn" class="hidden" onclick="finishQuiz()">إرسال النتيجة</button>
+</div>
+
+<!-- النتيجة -->
 <div id="pageResult" class="hidden">
-  <h2>انتهى الاختبار</h2>
-  <p id="resultText"></p>
+<h2>🎉 النتيجة</h2>
+<p id="resultText"></p>
 </div>
 
 </div>
+
+<audio id="alertSound">
+<source src="https://assets.mixkit.co/sfx/preview/mixkit-warning-alarm-buzzer-991.mp3">
+</audio>
+
+<canvas id="fireworks"></canvas>
 
 <script>
-let username="";
-let current=0;
-let score=0;
-let totalTime=1200; // 20 دقيقة
-let questionTime=15;
-let totalTimer, questionTimer;
-
-const questions=[
- {q:"ما هو اكثر البحار دفئاً؟",o:["البحر الأحمر","البحر المتوسط","البحر الكاريبي"],a:0},
- {q:"ما هو عدد عظام الجمجمة؟",o:["22","20","18"],a:0},
- {q:"كم عدد عيون النحلة؟",o:["6","5","8"],a:1},
- {q:"ما هي أصغر دولة في العالم؟",o:["البحرين","سان مارتن","الفاتيكان"],a:2},
- {q:"ما هو اسم بيت الدجاج؟",o:["قن","الخربوشة","الحدج"],a:0},
- {q:"ماهو مقياس سرعة السفن؟",o:["الميل البحري","العقدة","كم/س"],a:1},
- {q:"الشاعر الذي عاصر الجاهلية والإسلام؟",o:["الجهبذ","المخضرم","المتدشق"],a:1},
- {q:"الحيوان الذي يصاب بالحصبة كالإنسان؟",o:["الدجاج","القرد","الغوريلا"],a:1},
- {q:"متى حولت القبلة إلى الكعبة؟",o:["السنة الثانية","الأولى","الثالثة"],a:0},
- {q:"السورة التي ذكرت فيها البسملة مرتين؟",o:["التوبة","الرحمن","النمل"],a:2},
- {q:"أضعف حواس الطيور؟",o:["الإبصار","الشم","السمع"],a:1},
- {q:"شيء في السماء وإذا أضفنا حرفًا أصبح في Hay Day؟",o:["السفينة","النجم","النهر"],a:1},
- {q:"أكبر البحيرات النهرية؟",o:["قزوين","فيكتوريا","سوبيريور"],a:1},
- {q:"مدينة التلال السبعة؟",o:["مدريد","روما","دمشق"],a:1},
- {q:"كم مرة حج النبي ﷺ؟",o:["9","2","1"],a:2}
+/* ===== المستخدمون ===== */
+const allowedUsers = [
+ {name:"Mg",password:"mg10001"},
+ {name:"شهد 🕊",password:"shosho99"},
+ {name:"سلمى",password:"ss88ss"},
+ {name:"فهد🇸🇦",password:"f77f"},
+ {name:"REEM🇸🇦🔥",password:"reem55"},
+ {name:"الشيخ شاهي",password:"sskkss"},
+ {name:"عبير",password:"ab44"},
+ {name:"L7n🇸🇦🎶",password:"L777"},
+ {name:"Mo0o0o0n",password:"momo"},
+ {name:"Dosa",password:"dodo77"},
+ {name:"JoL",password:"jojo1122"},
+ {name:"Ghath alany",password:"gh88"},
+ {name:"See You Again",password:"see77"},
+ {name:"REEM",password:"roro88"},
+ {name:"آية 💝",password:"aa55"},
+ {name:"بنت دليم",password:"bb22"},
+ {name:"HAPPY CAT🐱",password:"ha44"},
+ {name:"غسق 🐥🐥🐤🐤",password:"a777"},
+ {name:"مزرعة DANA",password:"dd88"}
 ];
 
+/* ===== الأسئلة الـ60 ===== */
+const questions = [
+{q:"ما هو اكثر البحار دفئاً؟",o:["البحر الأحمر","البحر المتوسط","البحر الكاريبي"],a:0},
+{q:"ما عدد عظام الجمجمة؟",o:["22","20","18"],a:0},
+{q:"كم عدد عيون النحلة؟",o:["6","5","8"],a:1},
+{q:"أصغر دولة في العالم؟",o:["البحرين","سان مارتن","الفاتيكان"],a:2},
+{q:"اسم بيت الدجاج؟",o:["قن","الخربوشة","الحدج"],a:0},
+{q:"مقياس سرعة السفن؟",o:["ميل","عقدة","كم/س"],a:1},
+{q:"الشاعر الذي عاصر الجاهلية والإسلام؟",o:["الجهبذ","المخضرم","المتدشق"],a:1},
+{q:"حيوان يصاب بالحصبة؟",o:["الدجاج","القرد","الغوريلا"],a:1},
+{q:"متى حولت القبلة؟",o:["الثانية","الأولى","الثالثة"],a:0},
+{q:"سورة ذكرت فيها البسملة مرتين؟",o:["التوبة","الرحمن","النمل"],a:2},
+
+{q:"أضعف حواس الطيور؟",o:["الإبصار","الشم","السمع"],a:1},
+{q:"شيء بالسماء وإذا أضفنا حرف صار في HayDay؟",o:["السفينة","النجم","النهر"],a:1},
+{q:"أكبر بحيرة نهرية؟",o:["قزوين","فيكتوريا","سوبيريور"],a:1},
+{q:"مدينة التلال السبعة؟",o:["مدريد","روما","دمشق"],a:1},
+{q:"كم مرة حج النبي ﷺ؟",o:["9","2","1"],a:2},
+{q:"أكثر دولة جزر؟",o:["فنلندا","السويد","النرويج"],a:1},
+{q:"عاصمة كندا؟",o:["فانكوفر","تورونتو","أوتاوا"],a:2},
+{q:"تأسيس نتفليكس؟",o:["1997","2000","1998"],a:0},
+{q:"العنصر K؟",o:["كالسيوم","بوتاسيوم","كربون"],a:1},
+{q:"ناتج خلط الأصفر والأزرق؟",o:["نيلي","أخضر","بنفسجي"],a:1},
+
+{q:"جهاز قياس الزلازل؟",o:["أوم","ريختر","كيتوني"],a:1},
+{q:"أقرب نجم للأرض؟",o:["القمر","الشمس","المريخ"],a:1},
+{q:"ما الذي يقل كلما زاد؟",o:["حفرة","نظر","العمر"],a:2},
+{q:"حاسة الشم عند الثعبان؟",o:["جلده","أنفه","لسانه"],a:2},
+{q:"اسم مجرتنا؟",o:["الأرملة","درب زبيدة","درب التبانة"],a:2},
+{q:"فقرات رقبة الزرافة؟",o:["32","7","5"],a:1},
+{q:"ذكر رمضان في القرآن؟",o:["1","3","9"],a:0},
+{q:"شهور فيها 28 يوم؟",o:["2","1","12"],a:2},
+{q:"أمير الشعراء؟",o:["المتنبي","امرؤ القيس","أحمد شوقي"],a:2},
+{q:"أول زوجة للنبي ﷺ؟",o:["خديجة","مارية","أم سلمة"],a:0},
+
+{q:"عضو لا يصيبه السرطان؟",o:["القلب","الخلايا العصبية","الشعر"],a:0},
+{q:"أول ما خلق الله؟",o:["آدم","القلم","البشر"],a:1},
+{q:"المكون الأساسي للفلافل؟",o:["عدس","باذنجان","حمص"],a:2},
+{q:"كم رمضان صامه النبي؟",o:["1","9","11"],a:1},
+{q:"فنزويلا في أي قارة؟",o:["أمريكا الجنوبية","أوروبا","أمريكا الشمالية"],a:0},
+{q:"دجاجة HayDay أين؟",o:["متجر الهدايا","بيت الحي","السينما"],a:0},
+{q:"جنسية أعلى لفل بالسفينة؟",o:["كويتي","سعودي","صيني"],a:1},
+{q:"سورة في نصف القرآن؟",o:["الكهف","تبارك","طه"],a:0},
+{q:"أكبر جزيرة بالمتوسط؟",o:["قبرص","مالطا","صقلية"],a:2},
+{q:"منظمة الدول المصدرة للنفط؟",o:["أوابك","أوبك","العفو"],a:1},
+
+{q:"صوت الشاة؟",o:["مواء","ثغاء","هذيان"],a:1},
+{q:"مربي الخيل؟",o:["خيال","سائس","إسكندراني"],a:1},
+{q:"عبادة لا تؤدى جماعة؟",o:["الخوف","تقبيل الحجر","الفتح"],a:1},
+{q:"توفي ولم يولد؟",o:["عيسى","آدم","نبوخذنصر"],a:1},
+{q:"هرمون يخفض السكر؟",o:["كافيين","أنسولين","تستوستيرون"],a:1},
+{q:"القسطنطينية الآن؟",o:["أنقرة","روما","إسطنبول"],a:2},
+{q:"عاصمة موريتانيا؟",o:["أديس","نواكشوط","مقديشو"],a:1},
+{q:"مضيق الخليج؟",o:["باب المندب","البسفور","هرمز"],a:2},
+{q:"أصغر عظمة؟",o:["ترقوة","الأذن","الأنف"],a:1},
+{q:"كم مليمتر في السنتيمتر؟",o:["10","100","1000"],a:0}
+];
+
+/* ===== منطق الاختبار ===== */
+let username="",current=0,score=0;
+let totalTime=1200,questionTime=15;
+let totalTimer,questionTimer,soundPlayed=false;
+
+/* دخول */
 function goConfirm(){
  username=document.getElementById("username").value.trim();
- if(!username){alert("اكتب اسمك");return;}
- if(localStorage.getItem("quiz_done")){
-   alert("لقد شاركت مسبقًا");
-   return;
+ let password=document.getElementById("password").value.trim();
+ let user=allowedUsers.find(u=>u.name===username && u.password===password);
+ if(!user){alert("❌ الاسم أو كلمة السر غير صحيحة");return;}
+ if(localStorage.getItem("quiz_done_"+username)){
+   alert("❌ هذا الحساب شارك مسبقًا");return;
  }
  document.getElementById("pageName").classList.add("hidden");
  document.getElementById("pageConfirm").classList.remove("hidden");
 }
 
+/* بدء */
 function startQuiz(){
  document.getElementById("pageConfirm").classList.add("hidden");
  document.getElementById("pageQuiz").classList.remove("hidden");
@@ -117,50 +252,143 @@ function startQuiz(){
  startTotalTimer();
 }
 
+/* سؤال */
 function showQuestion(){
  if(current>=questions.length){
-   document.getElementById("submitBtn").classList.remove("hidden");
-   return;
+  document.getElementById("submitBtn").classList.remove("hidden");
+  return;
  }
  let q=questions[current];
- let html=`<div class="question"><h3>${current+1}. ${q.q}</h3>`;
+ let html=`<h3>${current+1}. ${q.q}</h3>`;
  q.o.forEach((op,i)=>{
-   html+=`<label><input type="radio" name="opt" value="${i}"> ${op}</label><br>`;
+  html+=`<div class="option">
+  <label><input type="radio" name="opt" value="${i}" onchange="showNext()"> ${op}</label>
+  </div>`;
  });
- html+="</div>";
  document.getElementById("quiz").innerHTML=html;
+ document.getElementById("nextBtn").classList.add("hidden");
 
  let t=questionTime;
+ document.getElementById("questionTimer").innerText=t;
  questionTimer=setInterval(()=>{
-   t--;
-   if(t<=0){nextQuestion();}
+  t--;
+  document.getElementById("questionTimer").innerText=t;
+  if(t<=0) nextQuestion();
  },1000);
+}
+
+function showNext(){
+ document.getElementById("nextBtn").classList.remove("hidden");
 }
 
 function nextQuestion(){
  clearInterval(questionTimer);
  let sel=document.querySelector("input[name=opt]:checked");
- if(sel && Number(sel.value)===questions[current].a) score++;
+ if(sel && +sel.value===questions[current].a) score++;
  current++;
  showQuestion();
 }
 
+/* العداد */
 function startTotalTimer(){
  totalTimer=setInterval(()=>{
-   totalTime--;
-   let m=Math.floor(totalTime/60);
-   let s=totalTime%60;
-   document.getElementById("timer").innerText=
-     `${m}:${s<10?"0"+s:s}`;
-   if(totalTime<=0){
-     clearInterval(totalTimer);
-     clearInterval(questionTimer);
-     document.getElementById("submitBtn").classList.remove("hidden");
-   }
+  totalTime--;
+  let m=Math.floor(totalTime/60);
+  let s=totalTime%60;
+  document.getElementById("totalTimer").innerText=`⏱️ ${m}:${s<10?"0"+s:s}`;
+  if(totalTime===20 && !soundPlayed){
+   document.getElementById("alertSound").play();
+   soundPlayed=true;
+  }
+  if(totalTime<=0){
+   clearInterval(totalTimer);
+   clearInterval(questionTimer);
+   document.getElementById("submitBtn").classList.remove("hidden");
+  }
  },1000);
 }
 
+/* إنهاء */
 function finishQuiz(){
+ localStorage.setItem("quiz_done_"+username,"1");
+ saveResult();
+ launchFireworks();
+ document.getElementById("pageQuiz").classList.add("hidden");
+ document.getElementById("pageResult").classList.remove("hidden");
+ document.getElementById("resultText").innerText=
+ `${username} حصلت على ${score} من ${questions.length}`;
+ showLeaderboard();
+}
+
+/* النتائج */
+function saveResult(){
+ let r=JSON.parse(localStorage.getItem("results")||"[]");
+ r.push({name:username,score});
+ r.sort((a,b)=>b.score-a.score);
+ localStorage.setItem("results",JSON.stringify(r));
+}
+
+function showLeaderboard(){
+ let r=JSON.parse(localStorage.getItem("results")||"[]");
+ let table=document.getElementById("leaderboard");
+ table.innerHTML="<tr><th>الترتيب</th><th>الاسم</th><th>الدرجة</th></tr>";
+ if(r.length===0)return;
+ let max=r[0].score;
+ let min=r[r.length-1].score;
+ r.forEach((x,i)=>{
+  let row=table.insertRow();
+  row.insertCell(0).innerText=i+1;
+  let nameCell=row.insertCell(1);
+  row.insertCell(2).innerText=x.score;
+  if(x.score===max){
+   nameCell.innerHTML=`<span class="gold-cup">🏆</span><b>${x.name}</b>
+   <div style="color:#e84393;font-weight:bold">
+   ياللهول انت الاول 😍🌹 حي عسل يفتخر بك
+   </div>`;
+  }else if(x.score===min){
+   nameCell.innerHTML=`${x.name} ☹️👊..`;
+  }else{
+   nameCell.innerText=x.name;
+  }
+ });
+}
+document.addEventListener("DOMContentLoaded",showLeaderboard);
+
+/* ألعاب نارية */
+const canvas=document.getElementById("fireworks");
+const ctx=canvas.getContext("2d");
+canvas.style.cssText="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;display:none;z-index:9999";
+function resize(){canvas.width=innerWidth;canvas.height=innerHeight}
+window.onresize=resize;resize();
+
+function launchFireworks(){
+ canvas.style.display="block";
+ let p=[];
+ function boom(){
+  let x=Math.random()*canvas.width;
+  let y=Math.random()*canvas.height/2;
+  let c=["#ff7675","#74b9ff","#55efc4","#ffeaa7","#fd79a8"];
+  for(let i=0;i<40;i++){
+   p.push({x,y,vx:(Math.random()-.5)*6,vy:(Math.random()-.5)*6,l:60,col:c[Math.floor(Math.random()*c.length)]});
+  }
+ }
+ let int=setInterval(boom,400);
+ function anim(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  p.forEach((a,i)=>{
+   a.x+=a.vx;a.y+=a.vy;a.l--;
+   ctx.fillStyle=a.col;
+   ctx.beginPath();ctx.arc(a.x,a.y,3,0,Math.PI*2);ctx.fill();
+   if(a.l<=0)p.splice(i,1);
+  });
+  requestAnimationFrame(anim);
+ }
+ anim();
+ setTimeout(()=>{clearInterval(int);canvas.style.display="none";},4000);
+}
+</script>
+</body>
+</html>function finishQuiz(){
  localStorage.setItem("quiz_done","1");
  document.getElementById("pageQuiz").classList.add("hidden");
  document.getElementById("pageResult").classList.remove("hidden");
